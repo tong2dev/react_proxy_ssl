@@ -1,0 +1,55 @@
+version: '2'
+services:
+
+  portainer:
+    image: portainer/portainer
+    container_name: portainer
+    command: -H unix:///var/run/docker.sock
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      react_net:
+          ipv4_address: 20.5.0.2
+  
+  proxy:
+    image: nginx
+    container_name: proxy
+    restart: always
+    volumes:
+      - ./proxy/conf/nginx.conf:/etc/nginx/nginx.conf
+      - ./proxy/ssl:/etc/nginx/ssl
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      react_net:
+          ipv4_address: 20.5.0.3
+
+  react:
+    image: node:alpine
+    container_name: web_react
+    depends_on:
+      - proxy
+    working_dir: /usr/src/app/web_react
+    volumes:
+      - ./web_react/:/usr/src/app/web_react
+    environment:
+      - PUBLIC_URL=react
+    tty: true
+    networks:
+      react_net:
+          ipv4_address: 20.5.0.4
+
+
+volumes:
+  portainer_data:
+
+networks:
+  react_net:
+      driver: bridge
+      ipam:
+        config:
+          - subnet: 20.5.0.0/16
+            gateway: 20.5.0.1
